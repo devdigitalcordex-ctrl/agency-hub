@@ -1,0 +1,6 @@
+cat > vercel.json << 'EOF'
+{
+  "framework": "nextjs"
+}
+EOF
+
