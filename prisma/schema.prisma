@@ -1,0 +1,152 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  password      String
+  role          String    @default("admin")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sessions      Session[]
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Site {
+  id              String    @id @default(cuid())
+  name            String
+  url             String    @unique
+  siteKey         String    @unique @default(cuid())
+  status          String    @default("unknown")   // online | offline | warning | unknown
+  lastSeen        DateTime?
+  wpVersion       String?
+  phpVersion      String?
+  pluginVersion   String?
+  adminEmail      String?
+  allowlistMode   Boolean   @default(false)
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  scans           Scan[]
+  backups         Backup[]
+  activityLogs    ActivityLog[]
+  alerts          Alert[]
+  ipRules         IpRule[]
+  commands        Command[]
+}
+
+model Scan {
+  id          String   @id @default(cuid())
+  siteId      String
+  status      String   @default("pending")  // pending | running | complete | failed
+  triggeredBy String   @default("schedule") // schedule | manual | hub
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+  totalFiles  Int      @default(0)
+  threats     Int      @default(0)
+  findings    Json     @default("[]")
+  site        Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([siteId])
+}
+
+model Backup {
+  id          String    @id @default(cuid())
+  siteId      String
+  type        String    @default("full")   // full | db | files
+  status      String    @default("pending") // pending | running | complete | failed
+  size        BigInt    @default(0)
+  downloadUrl String?
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+  site        Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([siteId])
+}
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  siteId      String
+  eventType   String
+  category    String   @default("general")
+  severity    String   @default("info")   // info | low | medium | high | critical
+  message     String
+  userIp      String?
+  userAgent   String?
+  userId      String?
+  username    String?
+  objectType  String?
+  objectId    String?
+  meta        Json     @default("{}")
+  occurredAt  DateTime @default(now())
+  site        Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([siteId])
+  @@index([severity])
+  @@index([occurredAt])
+}
+
+model Alert {
+  id          String    @id @default(cuid())
+  siteId      String
+  type        String    // malware | login_failure | file_change | new_admin | etc
+  severity    String    @default("medium")
+  title       String
+  message     String
+  meta        Json      @default("{}")
+  resolved    Boolean   @default(false)
+  resolvedAt  DateTime?
+  emailSent   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  site        Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([siteId])
+  @@index([resolved])
+  @@index([createdAt])
+}
+
+model IpRule {
+  id          String    @id @default(cuid())
+  siteId      String
+  type        String    // allowlist | allowlist_cidr | blocklist | blocklist_cidr | country | user_agent
+  value       String
+  label       String?
+  reason      String?
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+  site        Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([siteId])
+  @@index([type])
+}
+
+model Command {
+  id          String    @id @default(cuid())
+  siteId      String
+  type        String    // scan | backup | clear_cache | update_plugin | 2fa_bypass | block_ip
+  payload     Json      @default("{}")
+  status      String    @default("pending")  // pending | sent | acknowledged | complete | failed
+  result      Json?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  site        Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([siteId])
+  @@index([status])
+}
