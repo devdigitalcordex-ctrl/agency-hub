@@ -16,11 +16,11 @@ import LogsSection from '@/components/sites/LogsSection'
 
 export const dynamic = 'force-dynamic'
 
-export default async function SiteDetailPage({ params }: { params: { id: string } }) {
-  await auth()
+export default async function SiteDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;  await auth()
 
   const site = await db.site.findUnique({
-    where: { id: params.id },
+    where: { id: id },
     include: {
       alerts: {
         where: { resolved: false },
