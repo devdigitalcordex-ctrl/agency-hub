@@ -120,7 +120,58 @@ export async function POST(req: NextRequest) {
         await db.activityLog.createMany({ data: logData })
       }
     }
+// Process command results (scan results, backup results, etc.)
+    if (data?.command_results && Array.isArray(data.command_results)) {
+      for (const result of data.command_results) {
+        if (result.command_id) {
+          await db.command.updateMany({
+            where: { id: result.command_id, siteId: site.id },
+            data: { status: result.success ? 'completed' : 'failed' },
+          }).catch(() => {})
+        }
 
+        if (result.type === 'scan' && result.data) {
+          const scanData = result.data
+          await db.scan.create({
+            data: {
+              siteId: site.id,
+              status: result.success ? 'complete' : 'failed',
+              triggeredBy: 'hub',
+              totalFiles: scanData.total_files || 0,
+              threats: scanData.threats?.length || 0,
+              findings: scanData.threats || [],
+              completedAt: new Date(),
+            },
+          })
+          if (scanData.threats && scanData.threats.length > 0) {
+            await db.alert.create({
+              data: {
+                siteId: site.id,
+                type: 'malware_found',
+                severity: 'critical',
+                title: `Malware Detected: ${scanData.threats.length} threat(s) found`,
+                message: scanData.threats.map((t: any) => t.file || t.threat).join(', '),
+                meta: { threats: scanData.threats },
+              },
+            })
+          }
+        }
+
+        if (result.type === 'backup' && result.data) {
+          const bd = result.data
+          await db.backup.create({
+            data: {
+              siteId: site.id,
+              type: bd.type || 'full',
+              status: result.success ? 'complete' : 'failed',
+              size: bd.size || 0,
+              downloadUrl: bd.download_url || null,
+              completedAt: new Date(),
+            },
+          }).catch(() => {})
+        }
+      }
+    }
     // Return any pending commands for this site
     const pendingCommands = await db.command.findMany({
       where: { siteId: site.id, status: 'pending' },
