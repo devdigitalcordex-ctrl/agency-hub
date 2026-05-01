@@ -18,11 +18,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unknown site' }, { status: 404 })
     }
 
-    // Was site offline before?
     const wasOffline = site.status === 'offline'
     const newStatus = status || 'online'
 
-    // Update site with latest info
     await db.site.update({
       where: { id: site.id },
       data: {
@@ -35,10 +33,8 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    // Cache status in Redis
     await setSiteStatus(site.id, newStatus)
 
-    // If back online after being offline, create alert
     if (wasOffline && newStatus === 'online') {
       await db.alert.create({
         data: {
@@ -51,11 +47,10 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // Process alerts from plugin if included
     if (data?.alerts && Array.isArray(data.alerts)) {
       for (const alert of data.alerts) {
 
-        // Handle command results sent back via alerts channel
+        // ── COMMAND RESULTS sent back via alerts channel ──
         if (alert.type === 'command_result') {
           if (alert.command_id) {
             await db.command.updateMany({
@@ -63,7 +58,10 @@ export async function POST(req: NextRequest) {
               data: { status: alert.status === 'complete' ? 'completed' : 'failed' },
             }).catch(() => {})
           }
+
           const r = alert.result || {}
+
+          // Scan: plugin returns findings[], threats_found, total_files
           if (r.findings !== undefined || r.threats_found !== undefined) {
             await db.scan.create({
               data: {
@@ -89,15 +87,31 @@ export async function POST(req: NextRequest) {
               })
             }
           }
+
+          // Backup: plugin returns file_size, download_link, filename, backup_id
+          if (r.backup_id !== undefined || r.filename !== undefined) {
+            await db.backup.create({
+              data: {
+                siteId: site.id,
+                type: Array.isArray(r.components) && r.components.includes('files') ? 'full' : 'db',
+                status: alert.status === 'complete' ? 'complete' : 'failed',
+                size: r.file_size || 0,
+                downloadUrl: r.download_link || null,
+                completedAt: new Date(),
+              },
+            }).catch(() => {})
+          }
+
           continue
         }
 
+        // ── REGULAR ALERTS ──
         const existing = await db.alert.findFirst({
           where: {
             siteId: site.id,
             type: alert.type,
             resolved: false,
-            createdAt: { gte: new Date(Date.now() - 3600000) }, // dedup within 1hr
+            createdAt: { gte: new Date(Date.now() - 3600000) },
           },
         })
 
@@ -113,7 +127,6 @@ export async function POST(req: NextRequest) {
             },
           })
 
-          // Send email for high/critical alerts
           if (['high', 'critical'].includes(created.severity) && site.adminEmail) {
             try {
               await sendAlertEmail({
@@ -136,7 +149,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Process activity logs if included
+    // Activity logs — plugin sends user_login not username
     if (data?.logs && Array.isArray(data.logs)) {
       const logData = data.logs.map((log: any) => ({
         siteId: site.id,
@@ -147,78 +160,31 @@ export async function POST(req: NextRequest) {
         userIp: log.user_ip || null,
         userAgent: log.user_agent || null,
         userId: log.user_id ? String(log.user_id) : null,
-        username: log.username || null,
+        username: log.user_login || log.username || null,
         objectType: log.object_type || null,
         objectId: log.object_id ? String(log.object_id) : null,
-        meta: log.meta || {},
+        meta: {
+          user_role: log.user_role || null,
+          object_name: log.object_name || null,
+          before_value: log.before_value || null,
+          after_value: log.after_value || null,
+          is_flagged: log.is_flagged || 0,
+          ...(log.meta || {}),
+        },
         occurredAt: log.occurred_at ? new Date(log.occurred_at) : new Date(),
       }))
 
       if (logData.length > 0) {
-        await db.activityLog.createMany({ data: logData })
+        await db.activityLog.createMany({ data: logData, skipDuplicates: true })
       }
     }
 
-    // Process command results via dedicated channel (fallback)
-    if (data?.command_results && Array.isArray(data.command_results)) {
-      for (const result of data.command_results) {
-        if (result.command_id) {
-          await db.command.updateMany({
-            where: { id: result.command_id, siteId: site.id },
-            data: { status: result.success ? 'completed' : 'failed' },
-          }).catch(() => {})
-        }
-
-        if (result.type === 'scan' && result.data) {
-          const scanData = result.data
-          await db.scan.create({
-            data: {
-              siteId: site.id,
-              status: result.success ? 'complete' : 'failed',
-              triggeredBy: 'hub',
-              totalFiles: scanData.total_files || 0,
-              threats: scanData.threats?.length || 0,
-              findings: scanData.threats || [],
-              completedAt: new Date(),
-            },
-          })
-          if (scanData.threats && scanData.threats.length > 0) {
-            await db.alert.create({
-              data: {
-                siteId: site.id,
-                type: 'malware_found',
-                severity: 'critical',
-                title: `Malware Detected: ${scanData.threats.length} threat(s) found`,
-                message: scanData.threats.map((t: any) => t.file || t.threat).join(', '),
-                meta: { threats: scanData.threats },
-              },
-            })
-          }
-        }
-
-        if (result.type === 'backup' && result.data) {
-          const bd = result.data
-          await db.backup.create({
-            data: {
-              siteId: site.id,
-              type: bd.type || 'full',
-              status: result.success ? 'complete' : 'failed',
-              size: bd.size || 0,
-              downloadUrl: bd.download_url || null,
-              completedAt: new Date(),
-            },
-          }).catch(() => {})
-        }
-      }
-    }
-
-    // Return any pending commands for this site
+    // Return pending commands to plugin
     const pendingCommands = await db.command.findMany({
       where: { siteId: site.id, status: 'pending' },
       orderBy: { createdAt: 'asc' },
     })
 
-    // Mark them as sent
     if (pendingCommands.length > 0) {
       await db.command.updateMany({
         where: { id: { in: pendingCommands.map(c => c.id) } },
