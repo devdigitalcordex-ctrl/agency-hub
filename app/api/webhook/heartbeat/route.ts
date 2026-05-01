@@ -64,27 +64,27 @@ export async function POST(req: NextRequest) {
             }).catch(() => {})
           }
           const r = alert.result || {}
-          if (r.total_files !== undefined || r.threats !== undefined) {
+          if (r.findings !== undefined || r.threats_found !== undefined) {
             await db.scan.create({
               data: {
                 siteId: site.id,
                 status: alert.status === 'complete' ? 'complete' : 'failed',
                 triggeredBy: 'hub',
                 totalFiles: r.total_files || 0,
-                threats: Array.isArray(r.threats) ? r.threats.length : 0,
-                findings: r.threats || [],
+                threats: r.threats_found || 0,
+                findings: r.findings || [],
                 completedAt: new Date(),
               },
             })
-            if (Array.isArray(r.threats) && r.threats.length > 0) {
+            if (Array.isArray(r.findings) && r.findings.length > 0) {
               await db.alert.create({
                 data: {
                   siteId: site.id,
                   type: 'malware_found',
                   severity: 'critical',
-                  title: `Malware Detected: ${r.threats.length} threat(s) found`,
-                  message: r.threats.map((t: any) => t.file || t.threat || '').join(', '),
-                  meta: { threats: r.threats },
+                  title: `Malware Detected: ${r.findings.length} threat(s) found`,
+                  message: r.findings.map((t: any) => t.file || t.threat || '').join(', '),
+                  meta: { threats: r.findings },
                 },
               })
             }
