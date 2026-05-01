@@ -54,6 +54,44 @@ export async function POST(req: NextRequest) {
     // Process alerts from plugin if included
     if (data?.alerts && Array.isArray(data.alerts)) {
       for (const alert of data.alerts) {
+
+        // Handle command results sent back via alerts channel
+        if (alert.type === 'command_result') {
+          if (alert.command_id) {
+            await db.command.updateMany({
+              where: { id: alert.command_id, siteId: site.id },
+              data: { status: alert.status === 'complete' ? 'completed' : 'failed' },
+            }).catch(() => {})
+          }
+          const r = alert.result || {}
+          if (r.total_files !== undefined || r.threats !== undefined) {
+            await db.scan.create({
+              data: {
+                siteId: site.id,
+                status: alert.status === 'complete' ? 'complete' : 'failed',
+                triggeredBy: 'hub',
+                totalFiles: r.total_files || 0,
+                threats: Array.isArray(r.threats) ? r.threats.length : 0,
+                findings: r.threats || [],
+                completedAt: new Date(),
+              },
+            })
+            if (Array.isArray(r.threats) && r.threats.length > 0) {
+              await db.alert.create({
+                data: {
+                  siteId: site.id,
+                  type: 'malware_found',
+                  severity: 'critical',
+                  title: `Malware Detected: ${r.threats.length} threat(s) found`,
+                  message: r.threats.map((t: any) => t.file || t.threat || '').join(', '),
+                  meta: { threats: r.threats },
+                },
+              })
+            }
+          }
+          continue
+        }
+
         const existing = await db.alert.findFirst({
           where: {
             siteId: site.id,
@@ -120,7 +158,8 @@ export async function POST(req: NextRequest) {
         await db.activityLog.createMany({ data: logData })
       }
     }
-// Process command results (scan results, backup results, etc.)
+
+    // Process command results via dedicated channel (fallback)
     if (data?.command_results && Array.isArray(data.command_results)) {
       for (const result of data.command_results) {
         if (result.command_id) {
@@ -172,6 +211,7 @@ export async function POST(req: NextRequest) {
         }
       }
     }
+
     // Return any pending commands for this site
     const pendingCommands = await db.command.findMany({
       where: { siteId: site.id, status: 'pending' },
