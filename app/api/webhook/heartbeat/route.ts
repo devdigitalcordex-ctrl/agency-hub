@@ -49,6 +49,20 @@ console.log('HB_ALERTS:', JSON.stringify(data?.alerts))
 
     if (data?.alerts && Array.isArray(data.alerts)) {
       for (const alert of data.alerts) {
+        // Handle backup_complete alerts
+        if (alert.type === 'backup_complete') {
+          await db.backup.create({
+            data: {
+              siteId: site.id,
+              type: alert.components?.includes('files') ? 'full' : (alert.components?.includes('database') ? 'db' : 'full'),
+              status: 'complete',
+              size: alert.file_size || 0,
+              downloadUrl: alert.download_link || null,
+              completedAt: new Date(),
+            },
+          }).catch(() => {})
+          continue
+        }
 // Handle scan_complete alerts sent directly by plugin scanner
         if (alert.type === 'scan_complete') {
           await db.scan.create({
