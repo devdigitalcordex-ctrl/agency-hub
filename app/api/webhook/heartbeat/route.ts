@@ -49,8 +49,23 @@ console.log('HB_ALERTS:', JSON.stringify(data?.alerts))
 
     if (data?.alerts && Array.isArray(data.alerts)) {
       for (const alert of data.alerts) {
-
+// Handle scan_complete alerts sent directly by plugin scanner
+        if (alert.type === 'scan_complete') {
+          await db.scan.create({
+            data: {
+              siteId: site.id,
+              status: (alert.threats_found || 0) > 0 ? 'complete' : 'complete',
+              triggeredBy: 'hub',
+              totalFiles: alert.total_files || 0,
+              threats: alert.threats_found || 0,
+              findings: alert.findings || [],
+              completedAt: new Date(),
+            },
+          })
+          continue
+        }
         // ── COMMAND RESULTS sent back via alerts channel ──
+
         if (alert.type === 'command_result') {
           if (alert.command_id) {
             await db.command.updateMany({
