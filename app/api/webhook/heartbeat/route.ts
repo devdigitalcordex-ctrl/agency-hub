@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const { site_key, status, data } = body
-
+console.log('HB_ALERTS:', JSON.stringify(data?.alerts))
     if (!site_key) {
       return NextResponse.json({ error: 'Missing site_key' }, { status: 400 })
     }
