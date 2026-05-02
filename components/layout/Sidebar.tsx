@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import {
-  LayoutDashboard, Globe, ShieldAlert, Settings, LogOut, Bell
+  LayoutDashboard, Globe, ShieldAlert, Settings, LogOut, Bell, Download
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -11,6 +11,7 @@ const nav = [
   { href: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/sites', icon: Globe, label: 'Sites' },
   { href: '/alerts', icon: ShieldAlert, label: 'Alerts' },
+  { href: '/downloads', icon: Download, label: 'Downloads' },
   { href: '/settings', icon: Settings, label: 'Settings' },
 ]
 
