@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
 import { join } from 'path'
 import { readdirSync, statSync, readFileSync } from 'fs'
 import AdmZip from 'adm-zip'
@@ -20,13 +19,16 @@ function addFolderToZip(zip: AdmZip, folderPath: string, zipPath: string) {
 }
 
 export async function GET(req: NextRequest) {
-  const session = await auth()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const token = req.nextUrl.searchParams.get('token')
+  const validToken = process.env.PLUGIN_DOWNLOAD_TOKEN || 'agency-hub-dl-2026'
+  
+  if (token !== validToken) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
 
   try {
     const zip = new AdmZip()
-    const pluginDir = join(process.cwd(), 'plugin')
-    addFolderToZip(zip, pluginDir, '')
+    addFolderToZip(zip, join(process.cwd(), 'plugin'), '')
     const buffer = zip.toBuffer()
     return new NextResponse(buffer, {
       headers: {
@@ -35,7 +37,6 @@ export async function GET(req: NextRequest) {
       },
     })
   } catch (e) {
-    console.error(e)
     return NextResponse.json({ error: 'Could not generate ZIP' }, { status: 500 })
   }
 }
