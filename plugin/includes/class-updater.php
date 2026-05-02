@@ -21,7 +21,7 @@ class Agency_Hub_Updater {
                 'plugin'      => $this->plugin_slug,
                 'new_version' => $remote->version,
                 'url'         => $this->hub_url,
-                'package'     => $this->hub_url . '/api/plugin/download',
+                'package'     => $remote->download_url ?? $this->hub_url . '/api/plugin/download',
             );
         }
         return $transient;
