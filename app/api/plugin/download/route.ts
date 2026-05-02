@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const zip = new AdmZip()
-    addFolderToZip(zip, join(process.cwd(), 'plugin'), '')
+    addFolderToZip(zip, join(process.cwd(), 'plugin'), 'agency-hub')
     const buffer = zip.toBuffer()
     return new NextResponse(buffer, {
       headers: {
