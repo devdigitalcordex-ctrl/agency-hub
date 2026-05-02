@@ -102,15 +102,14 @@ class Agency_Hub_Heartbeat {
         switch ( $type ) {
             case 'scan':
                 Agency_Hub::update_setting( 'pending_scan_cmd_id', $cmd_id );
-                wp_schedule_single_event( time(), 'agency_hub_run_scan_bg' );
-                spawn_cron();
+                add_action( 'shutdown', array( 'Agency_Hub_Heartbeat', 'run_scan_background' ) );
                 return;
 
             case 'backup':
                 Agency_Hub::update_setting( 'pending_backup_cmd_id', $cmd_id );
                 Agency_Hub::update_setting( 'backup_progress', 0 );
-                wp_schedule_single_event( time(), 'agency_hub_run_backup_bg', array( $payload ) );
-                spawn_cron();
+                $bg_payload = $payload;
+                add_action( 'shutdown', function() use ( $bg_payload ) { Agency_Hub_Heartbeat::run_backup_background( $bg_payload ); } );
                 return;
 
             case 'block_ip':
