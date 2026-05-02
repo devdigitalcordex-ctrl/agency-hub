@@ -32,7 +32,7 @@ define( 'AGENCY_HUB_BACKUP_DIR',  WP_CONTENT_DIR . '/agency-hub-backups' );
 
 require_once AGENCY_HUB_DIR . 'includes/class-api.php';
 require_once AGENCY_HUB_DIR . 'includes/class-updater.php';
-new Agency_Hub_Updater();
+add_action( "init", function() { new Agency_Hub_Updater(); } );
 require_once AGENCY_HUB_DIR . 'includes/class-heartbeat.php';
 require_once AGENCY_HUB_DIR . 'includes/class-activity-log.php';
 require_once AGENCY_HUB_DIR . 'includes/class-scanner.php';
