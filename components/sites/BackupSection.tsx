@@ -1,6 +1,6 @@
 'use client'
-import { useState } from 'react'
-import { Database, Download, Play, Loader, CheckCircle, Clock } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Database, Download, Play, Loader } from 'lucide-react'
 import { timeAgo, formatBytes } from '@/lib/utils'
 
 interface Backup {
@@ -13,9 +13,21 @@ interface Backup {
   createdAt: string | Date
 }
 
-export default function BackupSection({ siteId, backups }: { siteId: string; backups: Backup[] }) {
+export default function BackupSection({ siteId, backups: initial }: { siteId: string; backups: Backup[] }) {
   const [running, setRunning] = useState(false)
   const [msg, setMsg] = useState('')
+  const [backups, setBackups] = useState(initial)
+
+  useEffect(() => {
+    const poll = setInterval(async () => {
+      const res = await fetch(`/api/sites/${siteId}/backups`).catch(() => null)
+      if (res?.ok) {
+        const data = await res.json()
+        setBackups(data)
+      }
+    }, 15000)
+    return () => clearInterval(poll)
+  }, [siteId])
 
   async function triggerBackup(type: 'full' | 'db' | 'files') {
     setRunning(true)
@@ -58,12 +70,10 @@ export default function BackupSection({ siteId, backups }: { siteId: string; bac
           ))}
         </div>
       </div>
-
       <div className="p-5">
         {msg && (
           <p className="text-xs text-[#5185C8] bg-[#5185C8]/5 border border-[#5185C8]/10 rounded-lg px-3 py-2 mb-4">{msg}</p>
         )}
-
         {backups.length === 0 ? (
           <div className="text-center py-6">
             <Database size={24} className="text-slate-700 mx-auto mb-2" />
@@ -83,7 +93,7 @@ export default function BackupSection({ siteId, backups }: { siteId: string; bac
                   </p>
                 </div>
                 {backup.downloadUrl && (
-                  <a
+                  
                     href={backup.downloadUrl}
                     target="_blank"
                     rel="noopener noreferrer"

@@ -58,7 +58,6 @@ console.log('HB_ALERTS:', JSON.stringify(data?.alerts))
               status: 'complete',
               size: alert.file_size || 0,
               downloadUrl: alert.download_link || null,
-              completedAt: new Date(),
             },
           }).catch(() => {})
           continue
@@ -73,7 +72,6 @@ console.log('HB_ALERTS:', JSON.stringify(data?.alerts))
               totalFiles: alert.total_files || 0,
               threats: alert.threats_found || 0,
               findings: alert.findings || [],
-              completedAt: new Date(),
             },
           })
           continue
@@ -100,7 +98,6 @@ console.log('HB_ALERTS:', JSON.stringify(data?.alerts))
                 totalFiles: r.total_files || 0,
                 threats: r.threats_found || 0,
                 findings: r.findings || [],
-                completedAt: new Date(),
               },
             })
             if (Array.isArray(r.findings) && r.findings.length > 0) {
@@ -126,7 +123,6 @@ console.log('HB_ALERTS:', JSON.stringify(data?.alerts))
                 status: alert.status === 'complete' ? 'complete' : 'failed',
                 size: r.file_size || 0,
                 downloadUrl: r.download_link || null,
-                completedAt: new Date(),
               },
             }).catch(() => {})
           }
