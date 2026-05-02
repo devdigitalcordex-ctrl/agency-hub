@@ -93,7 +93,7 @@ export default function BackupSection({ siteId, backups: initial }: { siteId: st
                   </p>
                 </div>
                 {backup.downloadUrl && (
-                  
+                  <a
                     href={backup.downloadUrl}
                     target="_blank"
                     rel="noopener noreferrer"
