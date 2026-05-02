@@ -1,28 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { join } from 'path'
-import { createReadStream, statSync, readdirSync } from 'fs'
-import archiver from 'archiver'
-import { Readable } from 'stream'
+import { readFileSync, readdirSync, statSync } from 'fs'
+import JSZip from 'jszip'
+
+function addFolder(zip: JSZip, folderPath: string, zipPath: string) {
+  const items = readdirSync(folderPath)
+  for (const item of items) {
+    if (item === '.DS_Store' || item === '__MACOSX') continue
+    const full = join(folderPath, item)
+    const zPath = zipPath ? `${zipPath}/${item}` : item
+    if (statSync(full).isDirectory()) {
+      addFolder(zip, full, zPath)
+    } else {
+      zip.file(zPath, readFileSync(full))
+    }
+  }
+}
 
 export async function GET(req: NextRequest) {
   const token = req.nextUrl.searchParams.get('token')
-  const validToken = process.env.PLUGIN_DOWNLOAD_TOKEN || 'agency-hub-dl-2026'
-  if (token !== validToken) {
+  if (token !== (process.env.PLUGIN_DOWNLOAD_TOKEN || 'agency-hub-dl-2026')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-
-  const pluginDir = join(process.cwd(), 'plugin')
-
-  const buffer = await new Promise<Buffer>((resolve, reject) => {
-    const archive = archiver('zip', { zlib: { level: 6 } })
-    const chunks: Buffer[] = []
-    archive.on('data', (chunk: Buffer) => chunks.push(chunk))
-    archive.on('end', () => resolve(Buffer.concat(chunks)))
-    archive.on('error', reject)
-    archive.directory(pluginDir, 'agency-hub')
-    archive.finalize()
-  })
-
+  const zip = new JSZip()
+  addFolder(zip, join(process.cwd(), 'plugin'), 'agency-hub')
+  const buffer = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' })
   return new NextResponse(buffer, {
     headers: {
       'Content-Type': 'application/zip',
