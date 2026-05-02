@@ -3,7 +3,7 @@
  * Plugin Name: Agency Hub
  * Plugin URI:  https://digitalcordex.com
  * Description: Connects this WordPress site to the Agency Hub dashboard for monitoring, security, backups, and management.
- * Version:     1.2.1
+ * Version:     1.2.2
  * Author:      Digital Cordex
  * Author URI:  https://digitalcordex.com
  * License:     GPL-2.0+
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 // CONSTANTS
 // ============================================================
 
-define( 'AGENCY_HUB_VERSION',     '1.2.1' );
+define( 'AGENCY_HUB_VERSION',     '1.2.2' );
 define( 'AGENCY_HUB_FILE',        __FILE__ );
 define( 'AGENCY_HUB_DIR',         plugin_dir_path( __FILE__ ) );
 define( 'AGENCY_HUB_URL',         plugin_dir_url( __FILE__ ) );
@@ -31,6 +31,8 @@ define( 'AGENCY_HUB_BACKUP_DIR',  WP_CONTENT_DIR . '/agency-hub-backups' );
 // ============================================================
 
 require_once AGENCY_HUB_DIR . 'includes/class-api.php';
+require_once AGENCY_HUB_DIR . 'includes/class-updater.php';
+new Agency_Hub_Updater();
 require_once AGENCY_HUB_DIR . 'includes/class-heartbeat.php';
 require_once AGENCY_HUB_DIR . 'includes/class-activity-log.php';
 require_once AGENCY_HUB_DIR . 'includes/class-scanner.php';
