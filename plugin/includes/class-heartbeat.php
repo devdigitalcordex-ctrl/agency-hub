@@ -188,14 +188,19 @@ class Agency_Hub_Heartbeat {
         $result    = Agency_Hub_Scanner::run_scan();
         $pending   = Agency_Hub::get_setting( 'pending_alerts', array() );
         $pending[] = array(
-            'type'       => 'command_result',
-            'severity'   => 'info',
-            'command_id' => $cmd_id,
-            'status'     => ! empty( $result['success'] ) ? 'complete' : 'failed',
-            'result'     => $result,
+            'type'         => 'command_result',
+            'severity'     => 'info',
+            'command_id'   => $cmd_id,
+            'status'       => 'complete',
+            'result'       => $result,
+            'threats_found'=> $result['threats_found'] ?? 0,
+            'findings'     => $result['findings'] ?? array(),
+            'total_files'  => $result['total_files'] ?? 0,
         );
         Agency_Hub::update_setting( 'pending_alerts', $pending );
         Agency_Hub::update_setting( 'pending_scan_cmd_id', '' );
+        Agency_Hub::update_setting( 'last_scan_status', $result['status'] ?? 'complete' );
+        Agency_Hub::update_setting( 'last_scan_at', current_time( 'mysql' ) );
     }
 
     public static function run_backup_background( $payload = array() ) {
