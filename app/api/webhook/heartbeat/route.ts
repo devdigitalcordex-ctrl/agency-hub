@@ -89,7 +89,7 @@ console.log('HB_ALERTS:', JSON.stringify(data?.alerts))
           const r = alert.result || {}
 
           // Scan: plugin returns findings[], threats_found, total_files
-          if (r.findings !== undefined && r.total_files > 0) {
+          if (r.findings !== undefined && (r.total_files > 0 || r.threats_found > 0 || r.status === "clean")) {
             await db.scan.create({
               data: {
                 siteId: site.id,
