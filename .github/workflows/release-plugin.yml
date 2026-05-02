@@ -1,0 +1,35 @@
+name: Release Plugin ZIP
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'plugin/**'
+
+jobs:
+  zip:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Get version
+        id: ver
+        run: |
+          VERSION=$(grep "Version:" plugin/agency-hub.php | sed 's/.*Version: *//' | tr -d ' \r')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create ZIP
+        run: |
+          cd plugin
+          zip -r ../agency-hub-v${{ steps.ver.outputs.version }}.zip . -x "*.DS_Store" -x "__MACOSX/*"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: plugin-v${{ steps.ver.outputs.version }}
+          name: Agency Hub Plugin v${{ steps.ver.outputs.version }}
+          files: agency-hub-v${{ steps.ver.outputs.version }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
