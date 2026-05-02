@@ -201,6 +201,8 @@ class Agency_Hub_Heartbeat {
         Agency_Hub::update_setting( 'pending_scan_cmd_id', '' );
         Agency_Hub::update_setting( 'last_scan_status', $result['status'] ?? 'complete' );
         Agency_Hub::update_setting( 'last_scan_at', current_time( 'mysql' ) );
+        // Immediately send results without waiting for next heartbeat
+        self::send();
     }
 
     public static function run_backup_background( $payload = array() ) {
