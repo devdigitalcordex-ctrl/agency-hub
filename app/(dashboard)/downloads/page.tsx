@@ -36,7 +36,7 @@ export default async function DownloadsPage() {
           <span className="text-xs bg-green-500/10 text-green-400 border border-green-500/20 px-2 py-1 rounded-full">Latest</span>
         </div>
 
-        <a href="/api/plugin/download" className="flex items-center justify-center gap-2 bg-[#5185C8] hover:bg-[#4070b8] text-white text-sm font-medium px-4 py-2.5 rounded-lg transition w-full mb-3">
+        <a href="/api/plugin/download?token=agency-hub-dl-2026" className="flex items-center justify-center gap-2 bg-[#5185C8] hover:bg-[#4070b8] text-white text-sm font-medium px-4 py-2.5 rounded-lg transition w-full mb-3">
           <Download size={14} />
           Download agency-hub-v{version}.zip
         </a>
