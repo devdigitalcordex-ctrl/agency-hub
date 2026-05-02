@@ -61,6 +61,12 @@ export default function ScanSection({ siteId, scans: initialScans }: { siteId: s
       })
       if (res.ok) {
         setMsg('Scan queued — results will appear automatically (up to 5 min)')
+        // Poll every 5s for results
+        const poll = setInterval(async () => {
+          const res = await fetch(window.location.href).catch(() => null)
+          if (res?.ok) { clearInterval(poll); window.location.reload() }
+        }, 5000)
+        setTimeout(() => clearInterval(poll), 120000)
         setPolling(true)
       } else {
         setMsg('Failed to queue scan.')
