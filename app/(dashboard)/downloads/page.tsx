@@ -4,6 +4,8 @@ import { readFileSync } from 'fs'
 import { join } from 'path'
 import { Download, Github, RefreshCw, Package } from 'lucide-react'
 
+export const dynamic = 'force-dynamic'
+
 export default async function DownloadsPage() {
   const session = await auth()
   if (!session) redirect('/login')
