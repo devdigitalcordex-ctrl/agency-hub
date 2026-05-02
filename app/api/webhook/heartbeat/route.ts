@@ -100,7 +100,8 @@ console.log('HB_ALERTS:', JSON.stringify(data?.alerts))
                 findings: r.findings || [],
               },
             })
-            if (Array.isArray(r.findings) && r.findings.length > 0) {
+            const existingMalwareAlert = await db.alert.findFirst({ where: { siteId, resolved: false, type: "malware" } });
+            if (Array.isArray(r.findings) && r.findings.length > 0 && !existingMalwareAlert) {
               await db.alert.create({
                 data: {
                   siteId: site.id,
