@@ -364,6 +364,7 @@ class Agency_Hub_Scanner {
             if ( in_array( $ext, self::DANGEROUS_EXTENSIONS, true ) ) {
                 $result = self::quarantine_file( $path );
 
+                if ( self::is_whitelisted( $file_path ) ) { continue; }
                 $findings[] = array(
                     'file_path'        => $path,
                     'file_type'        => 'uploads',
@@ -401,6 +402,27 @@ class Agency_Hub_Scanner {
     // --------------------------------------------------------
     // SCAN SINGLE FILE FOR MALWARE PATTERNS
     // --------------------------------------------------------
+
+    
+    private static $whitelist_paths = array(
+        'wordfence',
+        'wpforms',
+        'woocommerce',
+        'jetpack',
+        'yoast',
+        'elementor',
+        'akismet',
+        'contact-form-7',
+    );
+
+    private static function is_whitelisted( $file_path ) {
+        foreach ( self::$whitelist_paths as $plugin ) {
+            if ( strpos( $file_path, '/plugins/' . $plugin . '/' ) !== false ) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     private static function scan_file_for_malware( $file_path, $file_type ) {
         $findings = array();
