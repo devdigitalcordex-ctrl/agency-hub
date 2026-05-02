@@ -13,6 +13,7 @@ import BackupSection from '@/components/sites/BackupSection'
 import IpBlockingSection from '@/components/sites/IpBlockingSection'
 import AlertsSection from '@/components/sites/AlertsSection'
 import LogsSection from '@/components/sites/LogsSection'
+import DeleteSiteButton from '@/components/sites/DeleteSiteButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -69,7 +70,7 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
             <Globe size={20} className="text-[#5185C8]" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">{site.name}</h1>
+            <div className="flex items-center justify-between"><h1 className="text-2xl font-bold text-white">{site.name}</h1><DeleteSiteButton siteId={site.id} siteName={site.name} /></div>
             <a
               href={site.url}
               target="_blank"
@@ -147,3 +148,4 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
     </div>
   )
 }
+// delete handled by DeleteSiteButton component
