@@ -45,7 +45,7 @@ class Agency_Hub_Updater {
         $cache_key = 'agency_hub_remote_version';
         $cached = get_transient( $cache_key );
         if ( $cached ) return $cached;
-        $response = wp_remote_get( $this->hub_url . '/api/plugin/version', array( 'timeout' => 10 ) );
+        $response = wp_remote_get( rtrim($this->hub_url, '/') . '/api/plugin/version', array( 'timeout' => 10 ) );
         if ( is_wp_error( $response ) ) return false;
         $body = json_decode( wp_remote_retrieve_body( $response ) );
         if ( empty( $body->version ) ) return false;
