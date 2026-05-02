@@ -102,8 +102,23 @@ class Agency_Hub_Heartbeat {
         switch ( $type ) {
             case 'scan':
                 Agency_Hub::update_setting( 'pending_scan_cmd_id', $cmd_id );
-                add_action( 'shutdown', array( 'Agency_Hub_Heartbeat', 'run_scan_background' ) );
-                return;
+                @set_time_limit( 300 );
+                $result = Agency_Hub_Scanner::run_scan();
+                Agency_Hub::update_setting( 'last_scan_status', $result['status'] ?? 'complete' );
+                Agency_Hub::update_setting( 'last_scan_at', current_time( 'mysql' ) );
+                $pending   = Agency_Hub::get_setting( 'pending_alerts', array() );
+                $pending[] = array(
+                    'type'          => 'command_result',
+                    'severity'      => 'info',
+                    'command_id'    => $cmd_id,
+                    'status'        => 'complete',
+                    'result'        => $result,
+                    'threats_found' => $result['threats_found'] ?? 0,
+                    'findings'      => $result['findings'] ?? array(),
+                    'total_files'   => $result['total_files'] ?? 0,
+                );
+                Agency_Hub::update_setting( 'pending_alerts', $pending );
+                break;
 
             case 'backup':
                 Agency_Hub::update_setting( 'pending_backup_cmd_id', $cmd_id );
